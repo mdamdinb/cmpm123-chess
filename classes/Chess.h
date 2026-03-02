@@ -2,19 +2,11 @@
 
 #include "Game.h"
 #include "Grid.h"
+#include "BitMove.h"
+#include "MagicBitboards.h"
+#include <vector>
 
 constexpr int pieceSize = 80;
-
-enum ChessPiece
-{
-    NoPiece,
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King
-};
 
 class Chess : public Game
 {
@@ -26,6 +18,7 @@ public:
 
     bool canBitMoveFrom(Bit &bit, BitHolder &src) override;
     bool canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
+    void bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
     bool actionForEmptyHolder(BitHolder &holder) override;
 
     void stopGame() override;
@@ -44,6 +37,17 @@ private:
     Player* ownerAt(int x, int y) const;
     void FENtoBoard(const std::string& fen);
     char pieceNotation(int x, int y) const;
+
+    void generateMoves(std::vector<BitMove>& moves);
+    void generatePawnMoves(int square, std::vector<BitMove>& moves);
+    void generateKnightMoves(int square, std::vector<BitMove>& moves);
+    void generateKingMoves(int square, std::vector<BitMove>& moves);
+    int coordsToSquare(int x, int y) const { return y * 8 + x; }
+    void squareToCoords(int square, int& x, int& y) const { x = square % 8; y = square / 8; }
+    ChessPiece getPieceType(int gameTag) const;
+    bool isWhitePiece(int gameTag) const { return gameTag < 128; }
+    bool isSquareOccupied(int x, int y) const;
+    bool isSquareOccupiedByEnemy(int x, int y, bool isWhite) const;
 
     Grid* _grid;
 };

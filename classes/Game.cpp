@@ -3,6 +3,7 @@
 #include "BitHolder.h"
 #include "Turn.h"
 #include "../Application.h"
+#include <fstream>
 
 Game::Game()
 {
@@ -248,11 +249,20 @@ void Game::updateAI()
 
 void Game::mouseDown(ImVec2 &location, Entity *entity)
 {
+	std::ofstream logFile("/tmp/chess_debug.log", std::ios::app);
+	logFile << "\n=== mouseDown called at (" << location.x << "," << location.y << ") ===" << std::endl;
+	if (entity) {
+		logFile << "  Entity type: " << entity->getEntityType() << " (3=Bit, 4=BitHolder)" << std::endl;
+	} else {
+		logFile << "  No entity clicked" << std::endl;
+	}
+
 	bool placing = false;
 	_dragStartPos = location;
 	if (entity && entity->getEntityType() == Entity::EntityBit)
 	{
 		_dragBit = (Bit *)entity;
+		logFile << "  Set _dragBit to this piece" << std::endl;
 	}
 
 	if (!_dragBit)
@@ -285,18 +295,29 @@ void Game::mouseDown(ImVec2 &location, Entity *entity)
 	// Ask holder's and game's permission before dragging:
 	if (_oldHolder)
 	{
+		logFile << "  Piece has a holder, checking if can drag..." << std::endl;
 		_dragBit = _oldHolder->canDragBit(_dragBit);
+		if (_dragBit) {
+			logFile << "  Holder allows dragging, now checking canBitMoveFrom..." << std::endl;
+		}
 		if (_dragBit && !(canBitMoveFrom(*_dragBit, *_oldHolder)))
 		{
+			logFile << "  canBitMoveFrom returned FALSE - canceling drag" << std::endl;
 			_oldHolder->cancelDragBit(_dragBit);
 			_dragBit = nullptr;
+		}
+		if (_dragBit) {
+			logFile << "  canBitMoveFrom returned TRUE - piece can be dragged!" << std::endl;
 		}
 		if (!_dragBit)
 		{
 			_oldHolder = nullptr;
+			logFile << "  Drag canceled, returning" << std::endl;
+			logFile.close();
 			return;
 		}
 	}
+	logFile.close();
 	// Start dragging:
 	_oldPos = _dragBit->getPosition();
 	if (_dragBit)
@@ -314,10 +335,19 @@ void Game::mouseMoved(ImVec2 &location, Entity *entity)
 {
 	if (_dragBit)
 	{
-		// Get the mouse position, and see if we've moved 3 pixels since the mouseDown:
+		// Get the mouse position, and see if we've moved a few pixels since the mouseDown:
 		ImVec2 pos = location;
-		if (fabs(pos.x - _dragStartPos.x) >= 12 || fabs(pos.y - _dragStartPos.y) >= 12)
+		float deltaX = fabs(pos.x - _dragStartPos.x);
+		float deltaY = fabs(pos.y - _dragStartPos.y);
+		// Reduced threshold from 12 to 3 pixels for better responsiveness
+		if (deltaX >= 3 || deltaY >= 3) {
+			if (!_dragMoved) {
+				std::ofstream logFile("/tmp/chess_debug.log", std::ios::app);
+				logFile << "mouseMoved: Drag threshold reached! deltaX=" << deltaX << " deltaY=" << deltaY << std::endl;
+				logFile.close();
+			}
 			_dragMoved = true;
+		}
 
 		// Move the _dragBit (without animation -- it's unnecessary and slows down responsiveness):
 		pos.x += _dragOffset.x;
@@ -332,8 +362,12 @@ void Game::mouseMoved(ImVec2 &location, Entity *entity)
 
 void Game::mouseUp(ImVec2 &location, Entity *entity)
 {
+	std::ofstream logFile("/tmp/chess_debug.log", std::ios::app);
+	logFile << "\n=== mouseUp called at (" << location.x << "," << location.y << ") ===" << std::endl;
 	if (!_dragBit)
 	{
+		logFile << "  No _dragBit, returning" << std::endl;
+		logFile.close();
 		// If no bit was clicked, see if it's a BitHolder the game will let the user add a Bit to:
 		if (entity && entity->getEntityType() == Entity::EntityBitHolder)
 		{
@@ -348,8 +382,10 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 	}
 	if (_dragBit)
 	{
+		logFile << "  Have _dragBit, _dragMoved=" << _dragMoved << std::endl;
 		if (_dragMoved)
 		{
+			logFile << "  Piece was dragged, _dropTarget=" << (_dropTarget ? "YES" : "NO") << std::endl;
 			// Update the drag tracking to the final mouse position:
 			mouseMoved(location, entity);
 			if (_dropTarget)
@@ -365,6 +401,7 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 			// Is the move legal?
 			if (_dropTarget && _dropTarget->dropBitAtPoint(_dragBit, _dragBit->getPosition()))
 			{
+				logFile << "  Legal move! Calling bitMovedFromTo" << std::endl;
 				// Yes, notify the interested parties:
 				_dragBit->setPickedUp(false);
 				_dragBit->setPosition(_dropTarget->getPosition()); // don't animate
@@ -374,6 +411,7 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 			}
 			else
 			{
+				logFile << "  Illegal move - canceling" << std::endl;
 				// Nope, cancel:
 				if (_dropTarget)
 					_dropTarget->willNotDropBit(_dragBit);
@@ -382,6 +420,7 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 		}
 		else
 		{
+			logFile << "  Just a click, no drag detected" << std::endl;
 			// Just a click, without a drag:
 			if (_dropTarget)
 				_dropTarget->setHighlighted(false);
@@ -395,6 +434,7 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 		_dropTarget = nullptr;
 		_dragBit = nullptr;
 	}
+	logFile.close();
 }
 
 void Game::clearBoardHighlights()

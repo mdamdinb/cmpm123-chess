@@ -1,5 +1,7 @@
 #include "ChessSquare.h"
+#include "Chess.h"
 #include <string>
+#include <fstream>
 
 void ChessSquare::initHolder(const ImVec2 &position, const char *spriteName, const int column, const int row)
 {
@@ -13,17 +15,20 @@ void ChessSquare::initHolder(const ImVec2 &position, const char *spriteName, con
 
 bool ChessSquare::canDropBitAtPoint(Bit *newbit, const ImVec2 &point)
 {
+    std::ofstream logFile("/tmp/chess_debug.log", std::ios::app);
+    logFile << "canDropBitAtPoint called" << std::endl;
+    logFile.close();
+
     if (bit() == nullptr)
     {
         return true;
     }
-    //
-    // xor the gametags to see if we have opposing colors
-    //
+
     if ((bit()->gameTag() ^ newbit->gameTag()) >= 128)
     {
         return true;
     }
+
     return false;
 }
 
