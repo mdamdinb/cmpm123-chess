@@ -324,6 +324,14 @@ White pawns move from y=1 toward y=7 (up), black pawns move from y=6 toward y=0 
 
 About 4-5 hours total. Roughly 2 hours getting bitboards and move generation working, 1 hour on pawn logic, 1 hour debugging the coordinate issues, and another hour testing and fixing bugs.
 
+## Screenshots
+
+  ### Chess Board Starting Position
+  ![Chess Board](screenshots/chess-board.png)
+
+  ### Move Generation Debug (20 moves)
+  ![Debugger](screenshots/debugger-moves.png)
+
 ## References
 
 - Sebastian Lague's Coding Adventure: Chess video on YouTube
