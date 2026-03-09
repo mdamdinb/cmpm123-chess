@@ -342,6 +342,15 @@ void Chess::generateMoves(std::vector<BitMove>& moves)
                 case Knight:
                     generateKnightMoves(squareIndex, moves);
                     break;
+                case Bishop:
+                    generateBishopMoves(squareIndex, moves);
+                    break;
+                case Rook:
+                    generateRookMoves(squareIndex, moves);
+                    break;
+                case Queen:
+                    generateQueenMoves(squareIndex, moves);
+                    break;
                 case King:
                     generateKingMoves(squareIndex, moves);
                     break;
@@ -435,6 +444,86 @@ void Chess::generateKingMoves(int square, std::vector<BitMove>& moves)
                 isSquareOccupiedByEnemy(targetX, targetY, isWhite)) {
                 moves.push_back(BitMove(square, targetSquare, King));
             }
+        }
+    }
+}
+
+void Chess::generateRookMoves(int square, std::vector<BitMove>& moves)
+{
+    int x, y;
+    squareToCoords(square, x, y);
+
+    auto sourceSq = _grid->getSquare(x, y);
+    if (!sourceSq || !sourceSq->bit()) return;
+
+    bool isWhite = isWhitePiece(sourceSq->bit()->gameTag());
+
+    int directions[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+    for (int dir = 0; dir < 4; dir++) {
+        int dx = directions[dir][0];
+        int dy = directions[dir][1];
+
+        for (int dist = 1; dist < 8; dist++) {
+            int targetX = x + (dx * dist);
+            int targetY = y + (dy * dist);
+
+            if (targetX < 0 || targetX >= 8 || targetY < 0 || targetY >= 8) break;
+
+            if (isSquareOccupied(targetX, targetY)) {
+                if (isSquareOccupiedByEnemy(targetX, targetY, isWhite)) {
+                    moves.push_back(BitMove(square, coordsToSquare(targetX, targetY), Rook));
+                }
+                break;
+            }
+
+            moves.push_back(BitMove(square, coordsToSquare(targetX, targetY), Rook));
+        }
+    }
+}
+
+void Chess::generateBishopMoves(int square, std::vector<BitMove>& moves)
+{
+    int x, y;
+    squareToCoords(square, x, y);
+
+    auto sourceSq = _grid->getSquare(x, y);
+    if (!sourceSq || !sourceSq->bit()) return;
+
+    bool isWhite = isWhitePiece(sourceSq->bit()->gameTag());
+
+    int directions[4][2] = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+
+    for (int dir = 0; dir < 4; dir++) {
+        int dx = directions[dir][0];
+        int dy = directions[dir][1];
+
+        for (int dist = 1; dist < 8; dist++) {
+            int targetX = x + (dx * dist);
+            int targetY = y + (dy * dist);
+
+            if (targetX < 0 || targetX >= 8 || targetY < 0 || targetY >= 8) break;
+
+            if (isSquareOccupied(targetX, targetY)) {
+                if (isSquareOccupiedByEnemy(targetX, targetY, isWhite)) {
+                    moves.push_back(BitMove(square, coordsToSquare(targetX, targetY), Bishop));
+                }
+                break;
+            }
+
+            moves.push_back(BitMove(square, coordsToSquare(targetX, targetY), Bishop));
+        }
+    }
+}
+
+void Chess::generateQueenMoves(int square, std::vector<BitMove>& moves)
+{
+    generateRookMoves(square, moves);
+    generateBishopMoves(square, moves);
+
+    for (auto& move : moves) {
+        if (move.from == square && (move.piece == Rook || move.piece == Bishop)) {
+            move.piece = Queen;
         }
     }
 }

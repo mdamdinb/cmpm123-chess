@@ -2,20 +2,25 @@
 
 **Author:** Miga Damdinbazar
 **Platform:** macOS (Darwin 23.3.0)
-**Date:** March 1, 2026
+**Date:** March 8, 2026
 
 ## What I Did
 
-Implemented legal move generation for pawns, knights, and kings in chess. The move generator creates a list of all valid moves for the current player, validates piece movement according to chess rules, and handles captures including pawn diagonal captures.
+Implemented complete legal move generation for all chess pieces (pawns, knights, bishops, rooks, queens, and kings). The move generator creates a list of all valid moves for the current player, validates piece movement according to chess rules, and handles captures. The game now supports full two-player human chess with turn-based play.
 
 ## Features
 
 - FEN string parsing to set up any board position
-- Move generation for pawns (forward movement + diagonal captures)
-- Move generation for knights (L-shaped jumps using bitboards)
-- Move generation for kings (one square in any direction using bitboards)
+- Move generation for all pieces:
+  - Pawns (forward movement + diagonal captures)
+  - Knights (L-shaped jumps using bitboards)
+  - Bishops (diagonal sliding)
+  - Rooks (horizontal and vertical sliding)
+  - Queens (combination of rook + bishop movement)
+  - Kings (one square in any direction using bitboards)
 - Proper capture detection and piece removal
 - Turn-based validation (can only move your own pieces)
+- Sliding piece logic that stops at edges and blocking pieces
 
 ## How It Works
 
@@ -187,6 +192,69 @@ void Chess::generateKingMoves(int square, std::vector<BitMove>& moves)
 
 Kings can move one square in any of the 8 directions, so the bitboard has up to 8 bits set.
 
+### Sliding Pieces (Rooks, Bishops, Queens)
+
+For rooks, bishops, and queens, I implemented sliding logic that moves in a direction until hitting a piece or the edge of the board.
+
+**Rooks** slide horizontally and vertically (4 directions):
+
+```cpp
+void Chess::generateRookMoves(int square, std::vector<BitMove>& moves)
+{
+    int x, y;
+    squareToCoords(square, x, y);
+    bool isWhite = isWhitePiece(_grid->getSquare(x, y)->bit()->gameTag());
+
+    int directions[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+    for (int dir = 0; dir < 4; dir++) {
+        int dx = directions[dir][0];
+        int dy = directions[dir][1];
+
+        for (int dist = 1; dist < 8; dist++) {
+            int targetX = x + (dx * dist);
+            int targetY = y + (dy * dist);
+
+            if (targetX < 0 || targetX >= 8 || targetY < 0 || targetY >= 8) break;
+
+            if (isSquareOccupied(targetX, targetY)) {
+                if (isSquareOccupiedByEnemy(targetX, targetY, isWhite)) {
+                    moves.push_back(BitMove(square, coordsToSquare(targetX, targetY), Rook));
+                }
+                break;
+            }
+
+            moves.push_back(BitMove(square, coordsToSquare(targetX, targetY), Rook));
+        }
+    }
+}
+```
+
+**Bishops** work the same way but slide diagonally (4 diagonal directions). The only difference is the direction vectors: `{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}`.
+
+**Queens** combine both rook and bishop movement:
+
+```cpp
+void Chess::generateQueenMoves(int square, std::vector<BitMove>& moves)
+{
+    generateRookMoves(square, moves);
+    generateBishopMoves(square, moves);
+
+    for (auto& move : moves) {
+        if (move.from == square && (move.piece == Rook || move.piece == Bishop)) {
+            move.piece = Queen;
+        }
+    }
+}
+```
+
+The sliding logic:
+1. Loop through each direction
+2. Step outward 1 square at a time (dist = 1, 2, 3...)
+3. Stop if we hit the edge of the board
+4. Stop if we hit a piece (capture it if it's an enemy)
+5. Add each legal square as a move
+
 ### Move Validation
 
 When you try to move a piece, the game calls `canBitMoveFromTo()` which generates all legal moves and checks if your attempted move is in the list:
@@ -248,8 +316,8 @@ This happens automatically after the move is validated, so captures just work.
 - `classes/MagicBitboards.h` - Pre-calculated attack tables for knights and kings (~150 lines)
 
 **Modified:**
-- `classes/Chess.h` - Added move generation function declarations, helper functions (~20 lines added)
-- `classes/Chess.cpp` - Implemented all move generation logic (~200 lines added)
+- `classes/Chess.h` - Added move generation function declarations for all pieces (~25 lines added)
+- `classes/Chess.cpp` - Implemented complete move generation for all 6 piece types (~300 lines added)
 - `classes/ChessSquare.cpp` - Minor updates to drop validation (~5 lines)
 
 ## What's Not Implemented
@@ -259,14 +327,15 @@ This happens automatically after the move is validated, so captures just work.
 - Pawn Promotion (pawn reaching end of board)
 - Check detection
 - Checkmate detection
-- Bishops, Rooks, Queens (not required for this assignment)
 
 ## Testing
 
 The move generator produces exactly 20 legal moves from the starting position:
 - 8 pawn moves (each of the 8 pawns can move forward 1 square)
 - 8 pawn double moves (each pawn can move forward 2 squares from start)
-- 2 knight moves (each knight has 2 possible moves: Nf3/Nh3 and Na3/Nc3)
+- 4 knight moves (2 knights × 2 moves each)
+
+**Why only 20 moves?** In the starting position, bishops, rooks, queens, and kings have no legal moves because they're completely blocked by pawns and other pieces. The sliding pieces will show in the move list once the game progresses and they have space to move.
 
 I tested this by setting a breakpoint in the debugger and inspecting the moves array.
 

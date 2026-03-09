@@ -41,6 +41,9 @@ private:
     void generateMoves(std::vector<BitMove>& moves);
     void generatePawnMoves(int square, std::vector<BitMove>& moves);
     void generateKnightMoves(int square, std::vector<BitMove>& moves);
+    void generateBishopMoves(int square, std::vector<BitMove>& moves);
+    void generateRookMoves(int square, std::vector<BitMove>& moves);
+    void generateQueenMoves(int square, std::vector<BitMove>& moves);
     void generateKingMoves(int square, std::vector<BitMove>& moves);
     int coordsToSquare(int x, int y) const { return y * 8 + x; }
     void squareToCoords(int square, int& x, int& y) const { x = square % 8; y = square / 8; }
