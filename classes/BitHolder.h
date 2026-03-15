@@ -58,6 +58,8 @@ public:
 		return Sprite::isMouseOver(mousePos);
 	};
 
+	void setBitWithoutDelete(Bit *bit) { _bit = bit; if (_bit) _bit->setParent(this); }
+
 protected:
 	Bit *_bit;
 	int _gameTag;

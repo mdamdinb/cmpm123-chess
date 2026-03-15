@@ -8,6 +8,19 @@
 
 constexpr int pieceSize = 80;
 
+// Structure to track board state for unmake move
+struct BoardState {
+    Bit* capturedPiece;
+    int fromSquare;
+    int toSquare;
+    bool whiteKingMoved;
+    bool blackKingMoved;
+    bool whiteKingsideRookMoved;
+    bool whiteQueensideRookMoved;
+    bool blackKingsideRookMoved;
+    bool blackQueensideRookMoved;
+};
+
 class Chess : public Game
 {
 public:
@@ -32,6 +45,10 @@ public:
 
     Grid* getGrid() override { return _grid; }
 
+    // AI methods
+    bool gameHasAI() override;
+    void updateAI() override;
+
 private:
     Bit* PieceForPlayer(const int playerNumber, ChessPiece piece);
     Player* ownerAt(int x, int y) const;
@@ -39,18 +56,34 @@ private:
     char pieceNotation(int x, int y) const;
 
     void generateMoves(std::vector<BitMove>& moves);
+    void generateMovesFromString(const std::string& state, std::vector<BitMove>& moves, bool isWhite);
     void generatePawnMoves(int square, std::vector<BitMove>& moves);
     void generateKnightMoves(int square, std::vector<BitMove>& moves);
     void generateBishopMoves(int square, std::vector<BitMove>& moves);
     void generateRookMoves(int square, std::vector<BitMove>& moves);
     void generateQueenMoves(int square, std::vector<BitMove>& moves);
     void generateKingMoves(int square, std::vector<BitMove>& moves);
+    void generateCastlingMoves(int square, std::vector<BitMove>& moves);
+
     int coordsToSquare(int x, int y) const { return y * 8 + x; }
     void squareToCoords(int square, int& x, int& y) const { x = square % 8; y = square / 8; }
     ChessPiece getPieceType(int gameTag) const;
     bool isWhitePiece(int gameTag) const { return gameTag < 128; }
     bool isSquareOccupied(int x, int y) const;
     bool isSquareOccupiedByEnemy(int x, int y, bool isWhite) const;
+
+    // AI evaluation and search
+    int evaluateBoard(const std::string& state, bool isWhite);
+    int negamax(std::string& state, int depth, int alpha, int beta, bool isWhite);
+    BitMove getBestMove();
+
+    // Castling tracking
+    bool _whiteKingMoved;
+    bool _blackKingMoved;
+    bool _whiteKingsideRookMoved;
+    bool _whiteQueensideRookMoved;
+    bool _blackKingsideRookMoved;
+    bool _blackQueensideRookMoved;
 
     Grid* _grid;
 };
